@@ -16,13 +16,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
-
-try:
-    import open3d as o3d
-    _OPEN3D_AVAILABLE = True
-except ImportError:
-    o3d = None
-    _OPEN3D_AVAILABLE = False
+import open3d as o3d
 
 
 @dataclass
@@ -212,10 +206,8 @@ class LidarToPointCloudNode(Node):
             self.get_logger().error(f"Error publishing point cloud: {e}")
     
     def _save_map_callback(self) -> None:
-        """Periodic map saving callback (requires open3d; no-op if not installed)."""
+        """Periodic map saving callback"""
         try:
-            if not _OPEN3D_AVAILABLE or o3d is None:
-                return
             if not self.aggregator.has_changes():
                 return
             

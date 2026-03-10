@@ -18,13 +18,10 @@ def generate_launch_description():
     # Environment variables
     robot_token = os.getenv('ROBOT_TOKEN', '')
     robot_ip = os.getenv('ROBOT_IP', '')
-    conn_type = os.getenv('CONN_TYPE', 'webrtc')
     robot_ip_list = robot_ip.replace(" ", "").split(",") if robot_ip else []
-    # CycloneDDS with no ROBOT_IP: assume one robot (driver republishes to robot0/*)
-    if conn_type == 'cyclonedds' and not robot_ip_list:
-        robot_ip_list = ['0']
     map_name = os.getenv('MAP_NAME', 'my_map')
     save_map = os.getenv('MAP_SAVE', 'true')
+    conn_type = os.getenv('CONN_TYPE', 'webrtc')
     
     # Determine connection mode
     conn_mode = "single" if len(robot_ip_list) == 1 and conn_type != "cyclonedds" else "multi"
@@ -88,10 +85,10 @@ def generate_launch_description():
                 'conn_type': conn_type
             }],
         ),
-        # LiDAR processing node (Python lidar_processor; lidar_processor_cpp not in Jazzy Docker)
+        # LiDAR processing node
         Node(
-            package='lidar_processor',
-            executable='lidar_to_pointcloud',
+            package='lidar_processor_cpp',
+            executable='lidar_to_pointcloud_node',
             name='lidar_to_pointcloud',
             remappings=[
                 ('robot0/point_cloud2', 'point_cloud2'),
@@ -104,8 +101,8 @@ def generate_launch_description():
         ),
         # Point cloud aggregator - maximized for full coverage
         Node(
-            package='lidar_processor',
-            executable='pointcloud_aggregator',
+            package='lidar_processor_cpp',
+            executable='pointcloud_aggregator_node',
             name='pointcloud_aggregator',
             parameters=[{
                 'max_range': 20.0,
@@ -196,34 +193,30 @@ def generate_launch_description():
         ),
     ]
     
-    # Include launches (foxglove optional if pkg not installed)
-    include_launches = []
-    try:
-        foxglove_launch = os.path.join(
-            get_package_share_directory('foxglove_bridge'),
-            'launch', 'foxglove_bridge_launch.xml'
-        )
-        include_launches.append(
-            IncludeLaunchDescription(
-                FrontendLaunchDescriptionSource(foxglove_launch),
-                condition=IfCondition(with_foxglove),
-            )
-        )
-    except Exception:
-        pass  # foxglove_bridge not installed
-    include_launches.extend([
+    # Include launches
+    foxglove_launch = os.path.join(
+        get_package_share_directory('foxglove_bridge'),
+        'launch', 'foxglove_bridge_launch.xml'
+    )
+    
+    include_launches = [
+        # Foxglove Bridge
+        IncludeLaunchDescription(
+            FrontendLaunchDescriptionSource(foxglove_launch),
+            condition=IfCondition(with_foxglove),
+        ),
         # SLAM Toolbox for mapping
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 os.path.join(get_package_share_directory('slam_toolbox'),
                             'launch', 'online_async_launch.py')
             ]),
-            launch_arguments=[
-                ('slam_params_file', config_paths['slam']),
-                ('use_sim_time', 'false'),
-            ],
+            launch_arguments={
+                'slam_params_file': config_paths['slam'],
+                'use_sim_time': use_sim_time,
+            }.items(),
         ),
-    ])
+    ]
     
     return LaunchDescription(
         launch_args +

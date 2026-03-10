@@ -10,23 +10,16 @@ from aiortc import MediaStreamTrack
 from cv_bridge import CvBridge
 
 from rclpy.node import Node
-from rclpy.serialization import serialize_message, deserialize_message
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from rcl_interfaces.msg import SetParametersResult
 from tf2_ros import TransformBroadcaster
 
-from geometry_msgs.msg import Twist, PoseStamped, TransformStamped
+from geometry_msgs.msg import Twist, PoseStamped
 from go2_interfaces.msg import Go2State, IMU
 from go2_interfaces.msg import LowState, VoxelMapCompressed, WebRtcReq
 from sensor_msgs.msg import PointCloud2, JointState, Joy, Image, CameraInfo
 from nav_msgs.msg import Odometry
-
-# Robot publishes unitree_go types over CycloneDDS; use them when available so subscriptions match
-try:
-    from unitree_go.msg import LowState as UnitreeLowState
-except ImportError:
-    UnitreeLowState = None
 
 from ..domain.entities import RobotConfig, RobotData, CameraData
 from ..application.services import RobotDataService, RobotControlService
@@ -197,22 +190,11 @@ class Go2DriverNode(Node):
                 publishers['voxel'].append(
                     self.create_publisher(VoxelMapCompressed, voxel_topic, best_effort_qos))
 
-        # CycloneDDS single-robot: also publish on canonical "odom" for SLAM/Nav2
-        publishers['odom_slam'] = []
-        if self.config.conn_type == 'cyclonedds' and num_robots == 1:
-            publishers['odom_slam'].append(
-                self.create_publisher(Odometry, 'odom', qos_profile))
-
         return publishers
 
     def _setup_subscribers(self) -> None:
         """ROS2 subscribers setup"""
         qos_profile = QoSProfile(depth=10)
-        best_effort_qos = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10,
-        )
 
         # Command subscribers
         num_robots = len(self.config.robot_ip_list)
@@ -236,12 +218,11 @@ class Go2DriverNode(Node):
         # Joystick subscriber
         self.create_subscription(Joy, 'joy', self._on_joy, qos_profile)
 
-        # CycloneDDS support: use QoS that matches robot so we receive pose and lidar
+        # CycloneDDS support
         if self.config.conn_type == 'cyclonedds':
-            # LowState: robot publishes unitree_go type; go2_interfaces won't match so we skip
-            # or use UnitreeLowState (can cause 'generator' error in some envs). Skip for SLAM.
-            # self.create_subscription(LowState, 'lowstate', self._on_cyclonedds_low_state, qos_profile)
-            # Utlidar: robot publishes RELIABLE (topic info -v); use reliable to match
+            self.create_subscription(
+                LowState, 'lowstate',
+                self._on_cyclonedds_low_state, qos_profile)
             self.create_subscription(
                 PoseStamped, '/utlidar/robot_pose',
                 self._on_cyclonedds_pose, qos_profile)
@@ -335,57 +316,19 @@ class Go2DriverNode(Node):
 
     # CycloneDDS callbacks
     def _on_cyclonedds_low_state(self, msg: LowState) -> None:
-        """Processing LowState for CycloneDDS. No-op for SLAM pipeline."""
+        """Processing LowState for CycloneDDS"""
+        # You can add processing for CycloneDDS here if needed
         pass
 
     def _on_cyclonedds_pose(self, msg: PoseStamped) -> None:
-        """Republish utlidar robot_pose as odom topic and tf (odom -> base_link) for SLAM/Nav2."""
-        try:
-            try:
-                msg = deserialize_message(serialize_message(msg), PoseStamped)
-            except Exception:
-                pass
-            if not self.publishers['odometry']:
-                return
-            stamp = msg.header.stamp if msg.header.stamp.sec or msg.header.stamp.nanosec else self.get_clock().now().to_msg()
-            # Publish odom -> base_link transform for SLAM (slam_toolbox expects base_frame base_link)
-            odom_trans = TransformStamped()
-            odom_trans.header.stamp = stamp
-            odom_trans.header.frame_id = 'odom'
-            odom_trans.child_frame_id = 'base_link'
-            odom_trans.transform.translation.x = msg.pose.position.x
-            odom_trans.transform.translation.y = msg.pose.position.y
-            odom_trans.transform.translation.z = msg.pose.position.z
-            odom_trans.transform.rotation.x = msg.pose.orientation.x
-            odom_trans.transform.rotation.y = msg.pose.orientation.y
-            odom_trans.transform.rotation.z = msg.pose.orientation.z
-            odom_trans.transform.rotation.w = msg.pose.orientation.w
-            self.broadcaster.sendTransform(odom_trans)
-            # Publish Odometry message (same frame convention for Nav2/AMCL)
-            odom_msg = Odometry()
-            odom_msg.header.stamp = stamp
-            odom_msg.header.frame_id = 'odom'
-            odom_msg.child_frame_id = 'base_link'
-            odom_msg.pose.pose = msg.pose
-            self.publishers['odometry'][0].publish(odom_msg)
-            if self.publishers.get('odom_slam'):
-                self.publishers['odom_slam'][0].publish(odom_msg)
-        except Exception as e:
-            self.get_logger().warn(f"Dropping malformed pose msg: {e}", throttle_duration_sec=5.0)
+        """Processing pose for CycloneDDS"""
+        # You can add processing for CycloneDDS here if needed
+        pass
 
     def _on_cyclonedds_lidar(self, msg: PointCloud2) -> None:
-        """Republish utlidar point cloud as robot0/point_cloud2 for lidar pipeline."""
-        try:
-            # Unitree robot can send msgs that deserialize with generator-like access; materialize via round-trip
-            try:
-                msg = deserialize_message(serialize_message(msg), PointCloud2)
-            except Exception:
-                pass
-            if not self.publishers['lidar']:
-                return
-            self.publishers['lidar'][0].publish(msg)
-        except Exception as e:
-            self.get_logger().warn(f"Dropping malformed lidar msg: {e}", throttle_duration_sec=5.0)
+        """Processing lidar for CycloneDDS"""
+        # You can add processing for CycloneDDS here if needed
+        pass
 
     async def connect_robots(self) -> None:
         """Connect to robots"""
