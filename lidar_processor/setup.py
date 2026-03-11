@@ -21,6 +21,7 @@ setup(
         'console_scripts': [
             'lidar_to_pointcloud = lidar_processor.lidar_to_pointcloud_node:main',
             'pointcloud_aggregator = lidar_processor.pointcloud_aggregator_node:main',
+            'pointcloud_test_node = lidar_processor.pointcloud_test_node:main',
         ],
     },
 ) 

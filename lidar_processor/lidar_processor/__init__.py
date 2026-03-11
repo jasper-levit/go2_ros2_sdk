@@ -15,4 +15,5 @@ __license__ = "BSD-3-Clause"
 __all__ = [
     'lidar_to_pointcloud_node',
     'pointcloud_aggregator_node',
+    'pointcloud_test_node',
 ] 

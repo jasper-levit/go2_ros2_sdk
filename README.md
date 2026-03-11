@@ -87,6 +87,7 @@ cd ros2_ws
 git clone --recurse-submodules https://github.com/abizovnuralem/go2_ros2_sdk.git src
 sudo apt install ros-$ROS_DISTRO-image-tools
 sudo apt install ros-$ROS_DISTRO-vision-msgs
+sudo apt install ros-$ROS_DISTRO-sensor-msgs-py   # PointCloud2 Python read/write (lidar_processor, go2_robot_sdk)
 
 sudo apt install python3-pip clang portaudio19-dev
 cd src
@@ -122,6 +123,17 @@ export CONN_TYPE="webrtc"
 ros2 launch go2_robot_sdk robot.launch.py
 ```
 
+### Next steps (SLAM and navigation)
+
+1. **Run the stack** – The command above starts the driver, RViz, **slam_toolbox** (SLAM node), and Nav2. You can run a SLAM node by using this launch file; no separate SLAM launch is required.
+2. **Mapping only** – To run SLAM + mapping without full Nav2/joystick, use:  
+   `ros2 launch go2_robot_sdk mapping.launch.py`  
+   (Same `ROBOT_IP` and `CONN_TYPE`; includes slam_toolbox, lidar, camera, RViz, joystick.)
+3. **Create a map** – In RViz, open the **SlamToolboxPlugin** panel → "Start At Dock", then drive the robot with the joystick. The map builds on `/map`. When done: "Save Map" and "Serialize Map" (see [Mapping - creating your first map](#mapping---creating-your-first-map)).
+4. **Navigate** – Load the saved map in SlamToolboxPlugin ("Deserialize Map"), then use the **Nav2** panel → "Nav2 Goal" to send the robot to a target (see [Autonomous Navigation](#autonomous-navigation---navigating-in-your-new-map)).
+
+**Docker (dev_env):** Use `robot.launch.py` or `mapping.launch.py` inside the container; ensure the image includes `slam_toolbox` and Nav2 (see `dev_env/Dockerfile`). For a minimal run without SLAM/Nav2, use `webrtc_web.launch.py`.
+
 The `robot.launch.py` code starts many services/nodes simultaneously, including 
 
 * robot_state_publisher
@@ -135,7 +147,7 @@ The `robot.launch.py` code starts many services/nodes simultaneously, including
 * `twist_mux` (twist_multiplexer with source prioritization)        
 * foxglove_launch (launches the foxglove bridge)
 * slam_toolbox/online_async_launch.py
-* av2_bringup/navigation_launch.py
+* nav2_bringup/navigation_launch.py
 
 When you run `robot.launch.py`, `rviz` will fire up, lidar data will begin to accumulate, the front color camera data will be displayed too (typically after 4 seconds), and your dog will be waiting for commands from your joystick (e.g. a X-box controller). You can then steer the dog through your house, e.g., and collect LIDAR mapping data. 
 
