@@ -1,0 +1,25 @@
+# Git (keep .git so Dockerfile can run: git submodule update --init --recursive)
+.gitignore
+.gitattributes
+
+# Colcon workspace (not needed in image; we build inside container)
+build
+install
+log
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv
+venv
+*.egg-info
+*.egg
+
+# IDE / OS
+.idea
+.vscode
+*.swp
+.DS_Store
