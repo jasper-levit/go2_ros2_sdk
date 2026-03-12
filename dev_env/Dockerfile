@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-sensor-msgs-py \
     ros-jazzy-slam-toolbox \
     ros-jazzy-nav2-bringup \
+    ros-jazzy-foxglove-bridge \
     software-properties-common \
     ros-jazzy-rmw-cyclonedds-cpp \
     ffmpeg
@@ -29,6 +30,9 @@ WORKDIR /ros2_ws
 
 # Copy the repository (build context is repo root)
 COPY . /ros2_ws/src
+
+# Initialize git submodules (aioice required by go2_driver_node for WebRTC)
+RUN cd /ros2_ws/src && git submodule update --init --recursive
 
 # Install Python requirements in venv (open3d skipped on arm64/Python 3.12 - optional for lidar map save only)
 RUN . /opt/venv/bin/activate && cd src && \
@@ -66,6 +70,21 @@ RUN sed --in-place --expression \
       '$isource "/ros2_ws/install/setup.bash"' \
       /ros_entrypoint.sh
 
-# Default: run minimal WEBRTC launch (driver + state publisher + camera + foxglove)
+# Start Foxglove Bridge in the background (port 8765), then run the main command
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -e' \
+    '. /opt/venv/bin/activate' \
+    'source /opt/ros/${ROS_DISTRO}/setup.bash' \
+    'source /ros2_ws/install/setup.bash' \
+    '# Foxglove Bridge in background for Foxglove Studio (ws://localhost:8765)' \
+    'ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765 address:=0.0.0.0 &' \
+    'sleep 2' \
+    'exec "$@"' \
+    > /ros2_foxglove_entrypoint.sh && chmod +x /ros2_foxglove_entrypoint.sh
+
+ENTRYPOINT ["/ros2_foxglove_entrypoint.sh"]
+# Default: run minimal WEBRTC launch (driver + state publisher + camera)
+# Foxglove Bridge already running in background on port 8765; disable duplicate in launch
 # Override with: docker compose run unitree_ros ros2 launch go2_robot_sdk robot.launch.py
-CMD ["ros2", "launch", "go2_robot_sdk", "webrtc_web.launch.py"]
+CMD ["ros2", "launch", "go2_robot_sdk", "webrtc_web.launch.py", "enable_foxglove_bridge:=false", "enable_tts:=false"]

@@ -33,7 +33,7 @@ def load_urdf(context, *args, **kwargs):
                 value_type=str
             )
         }],
-        on_exit=LaunchConfiguration('on_exit'),
+        on_exit='shutdown',
     )
 
     return [robot_state_publisher_node]
@@ -94,8 +94,11 @@ def generate_launch_description():
             default_value='true',
             description='Enable Foxglove Bridge'
         ),
-
-
+        DeclareLaunchArgument(
+            'enable_tts',
+            default_value='true',
+            description='Enable TTS node (speech_processor)'
+        ),
 
         # Group all nodes to ensure they share the same on_exit behavior
         GroupAction([
@@ -126,7 +129,7 @@ def generate_launch_description():
                 remappings=[
                     ('cmd_vel_out', 'cmd_vel'),
                 ],
-                on_exit=on_exit,
+                on_exit='shutdown',
             ),
 
             # Image compression node
@@ -139,7 +142,7 @@ def generate_launch_description():
                     ('in', 'camera/image_raw'),
                     ('out/compressed', 'camera/compressed'),
                 ],
-                on_exit=on_exit,
+                on_exit='shutdown',
             ),
 
             # Foxglove Bridge node
@@ -149,20 +152,21 @@ def generate_launch_description():
                 parameters=[{
                     'send_buffer_limit': send_buffer_limit
                 }],
-                on_exit=on_exit,
+                on_exit='shutdown',
                 condition=IfCondition(LaunchConfiguration('enable_foxglove_bridge')),
             ),
 
-            # TTS node
+            # TTS node (from speech_processor package; disable with enable_tts:=false)
             Node(
-                package='go2_robot_sdk',
+                package='speech_processor',
                 executable='tts_node',
                 name='tts_node',
                 parameters=[{
                     'elevenlabs_api_key': elevenlabs_api_key,
                     'voice_name': voice_name
                 }],
-                on_exit=on_exit,
+                on_exit='shutdown',
+                condition=IfCondition(LaunchConfiguration('enable_tts')),
             ),
         ]),
 

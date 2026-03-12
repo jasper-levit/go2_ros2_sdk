@@ -80,6 +80,7 @@ class Go2NodeFactory:
     def create_launch_arguments(self) -> List[DeclareLaunchArgument]:
         """Create all launch arguments"""
         return [
+            DeclareLaunchArgument('use_sim_time', default_value='false', description='Use sim time'),
             DeclareLaunchArgument('rviz2', default_value='true', description='Launch RViz2'),
             DeclareLaunchArgument('nav2', default_value='true', description='Launch Nav2'),
             DeclareLaunchArgument('slam', default_value='true', description='Launch SLAM'),
@@ -191,13 +192,13 @@ class Go2NodeFactory:
                     'conn_type': self.config.conn_type
                 }],
             ),
-            # LiDAR processing node (new separate package)
+            # LiDAR processing node (empty list normalizes to () and breaks Jazzy parameter check)
             Node(
                 package='lidar_processor',
                 executable='lidar_to_pointcloud',
                 name='lidar_to_pointcloud',
                 parameters=[{
-                    'robot_ip_lst': self.config.robot_ip_list,
+                    'robot_ip_lst': self.config.robot_ip_list if self.config.robot_ip_list else [''],
                     'map_name': self.config.map_name,
                     'map_save': self.config.save_map
                 }],
@@ -302,17 +303,17 @@ class Go2NodeFactory:
                 FrontendLaunchDescriptionSource(foxglove_launch),
                 condition=IfCondition(with_foxglove),
             ),
-            # SLAM Toolbox
+            # SLAM Toolbox (pass strings to avoid Jazzy launch value type error)
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([
                     os.path.join(get_package_share_directory('slam_toolbox'),
                                 'launch', 'online_async_launch.py')
                 ]),
                 condition=IfCondition(with_slam),
-                launch_arguments={
-                    'slam_params_file': self.config.config_paths['slam'],
-                    'use_sim_time': use_sim_time,
-                }.items(),
+                launch_arguments=[
+                    ('slam_params_file', self.config.config_paths['slam']),
+                    ('use_sim_time', 'false'),
+                ],
             ),
             # Nav2
             IncludeLaunchDescription(
@@ -321,10 +322,10 @@ class Go2NodeFactory:
                                 'launch', 'navigation_launch.py')
                 ]),
                 condition=IfCondition(with_nav2),
-                launch_arguments={
-                    'params_file': self.config.config_paths['nav2'],
-                    'use_sim_time': use_sim_time,
-                }.items(),
+                launch_arguments=[
+                    ('params_file', self.config.config_paths['nav2']),
+                    ('use_sim_time', 'false'),
+                ],
             ),
         ]
 

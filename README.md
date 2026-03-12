@@ -2,6 +2,12 @@
 
 # LEVIT FORK OF THE Unitree Go2 ROS2 SDK Project!
 
+## Deployment context
+
+This fork runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. All ROS 2 code executes inside a Docker container on the Jetson. Development is done remotely from a **MacBook via a Cursor remote-dev session** connected to the Jetson over the network. The `dev_env/` Docker setup is the primary way to build and run the stack in this configuration — see [`dev_env/README.md`](dev_env/README.md) for details.
+
+If you are an agent (claude/cursor) your terminal sessions are running on that jetson. There is no screen device. 
+
 > [!IMPORTANT]  
 > I hadn’t updated this repository in a long time, and a lot of changes accumulated, making the project somewhat messy. I’ve finally found time to refactor everything using Clean Architecture principles. Previously, the LiDAR stream ran at around 2 Hz; it now updates at 7 Hz. However, joint states still arrive at 1 Hz, so you may notice some URDF update lag—that’s expected with the new firmware (v1.1.7). We’ll need to find a workaround for that.
 
@@ -104,7 +110,12 @@ colcon build
 ```
 
 ## Running via Docker
-Can set environment variables beforehand, hardcoded in docker/docker-compose.yaml, or as shown below. 
+Can set environment variables beforehand, hardcoded in docker/docker-compose.yaml, or as shown below.
+
+> [!NOTE]
+> Use `docker-compose` (hyphen), **not** `docker compose` (space). The Jetson backpack ships with the
+> standalone `docker-compose` CLI; the `compose` plugin is not installed, so the two-word form will
+> fail with *"docker: 'compose' is not a docker command"*.
 
 Run:
 ```shell
