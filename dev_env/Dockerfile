@@ -19,8 +19,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-slam-toolbox \
     ros-jazzy-nav2-bringup \
     ros-jazzy-foxglove-bridge \
-    software-properties-common \
     ros-jazzy-rmw-cyclonedds-cpp \
+    ros-jazzy-joy \
+    ros-jazzy-teleop-twist-joy \
+    ros-jazzy-twist-mux \
+    ros-jazzy-image-transport \
+    ros-jazzy-compressed-image-transport \
+    ros-jazzy-cv-bridge \
+    ros-jazzy-navigation2 \
+    ros-jazzy-nav2-amcl \
+    ros-jazzy-nav2-map-server \
+    ros-jazzy-nav2-util \
+    ros-jazzy-pointcloud-to-laserscan \
+    ros-jazzy-pcl-conversions \
+    ros-jazzy-pcl-ros \
+    software-properties-common \
     ffmpeg \
     git \
     python3-pytest \
@@ -41,8 +54,6 @@ ENV WEBRTC_SERVER_PORT="9991"
 
 # Pre-warm rosdep cache so postCreateCommand rosdep install is faster (use bash for setup.bash)
 RUN bash -c '. /opt/ros/${ROS_DISTRO}/setup.bash && rosdep update'
-
-RUN rm -rf /var/lib/apt/lists/*
 
 # Trust any bind-mounted repo (dev container mounts at /workspaces/...; /ros2_ws/src is a symlink)
 RUN git config --global --add safe.directory '*'
