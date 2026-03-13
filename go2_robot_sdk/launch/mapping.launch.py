@@ -51,6 +51,7 @@ def generate_launch_description():
     with_joystick = LaunchConfiguration('joystick', default='true')
     
     launch_args = [
+        DeclareLaunchArgument('use_sim_time', default_value='false', description='Use simulation time'),
         DeclareLaunchArgument('rviz', default_value='true', description='Launch RViz2'),
         DeclareLaunchArgument('foxglove', default_value='true', description='Launch Foxglove Bridge'),
         DeclareLaunchArgument('joystick', default_value='true', description='Launch joystick control'),
@@ -205,18 +206,19 @@ def generate_launch_description():
             FrontendLaunchDescriptionSource(foxglove_launch),
             condition=IfCondition(with_foxglove),
         ),
-        # SLAM Toolbox for mapping (use list of tuples + string for Jazzy compatibility)
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                os.path.join(get_package_share_directory('slam_toolbox'),
-                            'launch', 'online_async_launch.py')
-            ]),
-            launch_arguments=[
-                ('slam_params_file', config_paths['slam']),
-                ('use_sim_time', 'false'),
-            ],
-        ),
     ]
+    # SLAM Toolbox - included separately to avoid Jazzy launch_arguments tuple issue when combined with Foxglove
+    slam_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            os.path.join(get_package_share_directory('slam_toolbox'),
+                        'launch', 'online_async_launch.py')
+        ]),
+        launch_arguments=[
+            ('slam_params_file', config_paths['slam']),
+            ('use_sim_time', 'false'),
+        ],
+    )
+    include_launches.append(slam_launch)
     
     return LaunchDescription(
         launch_args +

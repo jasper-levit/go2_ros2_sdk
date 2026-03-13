@@ -13,7 +13,10 @@ if [ ! -d "$SRC" ] || [ ! -f "$SRC/requirements.txt" ]; then
   exit 1
 fi
 
+# Mark both symlink and resolved path safe (dev container mounts at /workspaces/...)
+REAL_SRC=$(readlink -f "$SRC" 2>/dev/null || realpath "$SRC" 2>/dev/null || echo "$SRC")
 git config --global --add safe.directory "$SRC" 2>/dev/null || true
+git config --global --add safe.directory "$REAL_SRC" 2>/dev/null || true
 (cd "$SRC" && git submodule update --init --recursive)
 
 if [ ! -f /ros2_ws/install/setup.bash ]; then

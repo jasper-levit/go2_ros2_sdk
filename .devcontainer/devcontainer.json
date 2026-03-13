@@ -4,12 +4,11 @@
     "dockerfile": "../dev_env/Dockerfile",
     "context": ".."
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws/src,type=bind",
   "workspaceFolder": "/ros2_ws",
   "mounts": [
     "source=uv-cache,target=/root/.cache/uv,type=volume"
   ],
-  "postCreateCommand": "bash /ros2_ws/src/.devcontainer/install.sh && /setup_workspace.sh",
+  "postCreateCommand": "bash -c 'mkdir -p /ros2_ws && REPO=\"${REPO:-/workspaces/go2_ros2_sdk}\" && [ -d \"$REPO\" ] || REPO=$(find /workspaces -maxdepth 1 -mindepth 1 -type d | head -1) && ln -snf \"$REPO\" /ros2_ws/src && bash /ros2_ws/src/.devcontainer/install.sh && /setup_workspace.sh'",
   "remoteEnv": {
     "ROBOT_IP": "",
     "CONN_TYPE": "webrtc",
