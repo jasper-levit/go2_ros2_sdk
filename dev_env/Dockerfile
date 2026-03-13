@@ -1,8 +1,10 @@
 # ROS 2 Jazzy on Ubuntu 24.04 (Noble) for Unitree Go2 WEBRTC
 # Used by dev container; workspace is bind-mounted at runtime.
-FROM ros:jazzy-ros-base
+# Stage name expected by Dev Containers CLI (it adds FROM this AS dev_containers_target_stage)
+FROM ros:jazzy-ros-base AS dev_container_auto_added_stage_label
 
-# Install basic requirements
+# Install basic requirements and workspace rosdep-derived apt packages.
+# To update workspace deps: rosdep keys --from-paths src --ignore-src then rosdep resolve <key>
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
@@ -20,9 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     software-properties-common \
     ros-jazzy-rmw-cyclonedds-cpp \
     ffmpeg \
-    git
+    git \
+    python3-pytest \
+    python3-requests
 
-# Install uv (venv is created in .devcontainer/install.sh)
+# Install uv (venv created in final step below)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
@@ -35,13 +39,22 @@ ENV CONN_TYPE="webrtc"
 ENV WEBRTC_SERVER_HOST="0.0.0.0"
 ENV WEBRTC_SERVER_PORT="9991"
 
+# Pre-warm rosdep cache so postCreateCommand rosdep install is faster (use bash for setup.bash)
+RUN bash -c '. /opt/ros/${ROS_DISTRO}/setup.bash && rosdep update'
+
 RUN rm -rf /var/lib/apt/lists/*
+
+# Trust any bind-mounted repo (dev container mounts at /workspaces/...; /ros2_ws/src is a symlink)
+RUN git config --global --add safe.directory '*'
 
 # Wire bashrc for interactive shells (venv and ROS)
 RUN echo "[ -f /opt/venv/bin/activate ] && source /opt/venv/bin/activate" >> /root/.bashrc && \
     echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
     echo "[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash" >> /root/.bashrc
 
-# setup_workspace.sh for colcon/rosdep (optional; can be run from postCreateCommand)
-COPY dev_env/setup_workspace.sh /setup_workspace.sh
-RUN chmod +x /setup_workspace.sh
+# Python venv with repo deps (open3d excluded: no arm64/Python 3.12 wheel)
+COPY requirements.txt /tmp/requirements.txt
+RUN grep -v "^open3d" /tmp/requirements.txt > /tmp/requirements_uv.txt || true && \
+    uv venv /opt/venv --python python3 && \
+    uv pip install --python /opt/venv/bin/python -r /tmp/requirements_uv.txt && \
+    rm -f /tmp/requirements.txt /tmp/requirements_uv.txt

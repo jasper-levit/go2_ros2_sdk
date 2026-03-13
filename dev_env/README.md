@@ -2,7 +2,7 @@
 
 **Dev container** setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The repo is bind-mounted at `/ros2_ws/src`, so you edit code and config on the host and see changes inside the container.
 
-- **Python**: [uv](https://docs.astral.sh/uv/) is installed in the image; the virtualenv at `/opt/venv` is created by `.devcontainer/install.sh` (run once via `postCreateCommand`). A **uv cache** volume is mounted to speed up installs.
+- **Python**: [uv](https://docs.astral.sh/uv/) is installed in the image; the virtualenv at `/opt/venv` is created by `build_workspace.sh` (run via `postCreateCommand` or manually). A **uv cache** volume is mounted to speed up installs.
 - **No Docker Compose**: use “Reopen in Container” (or `devcontainer build` / `devcontainer run`) instead.
 
 ## Prerequisites
@@ -13,7 +13,7 @@
 
 ## Quick start
 
-1. Open the repo in VS Code/Cursor and run **“Dev Containers: Reopen in Container”** (or from CLI: `devcontainer up` from the repo root). The first time, the image will build, then `install.sh` creates the uv venv and `setup_workspace.sh` runs rosdep and colcon build.
+1. Open the repo in VS Code/Cursor and run **“Dev Containers: Reopen in Container”** (or from CLI: `devcontainer up` from the repo root). The first time, the image will build, then `build_workspace.sh` creates the uv venv and runs rosdep and colcon build.
 
 2. Set the robot IP (from the app: Device → Data → STA Network: wlan0):
 
@@ -77,12 +77,12 @@ You can set `ROBOT_IP` (and optionally others) in `.env` or in the dev container
 After adding packages or changing Python/C++ code:
 
 ```bash
-/setup_workspace.sh
+/build_workspace.sh
 # or manually:
 cd /ros2_ws && colcon build && source install/setup.bash
 ```
 
-For a clean build, remove `build` and `install` under `/ros2_ws` and run `setup_workspace.sh` again.
+For a clean build, remove `build` and `install` under `/ros2_ws` and run `build_workspace.sh` again.
 
 ## Notes
 
