@@ -1,0 +1,31 @@
+{
+  "name": "Unitree Go2 ROS 2 Jazzy",
+  "build": {
+    "dockerfile": "../dev_env/Dockerfile",
+    "context": ".."
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws/src,type=bind",
+  "workspaceFolder": "/ros2_ws",
+  "mounts": [
+    "source=uv-cache,target=/root/.cache/uv,type=volume"
+  ],
+  "postCreateCommand": "bash /ros2_ws/src/.devcontainer/install.sh && /setup_workspace.sh",
+  "remoteEnv": {
+    "ROBOT_IP": "",
+    "CONN_TYPE": "webrtc",
+    "WEBRTC_SERVER_HOST": "0.0.0.0",
+    "WEBRTC_SERVER_PORT": "9991"
+  },
+  "runArgs": [
+    "--network=host",
+    "--privileged",
+    "--device=/dev/input:/dev/input"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

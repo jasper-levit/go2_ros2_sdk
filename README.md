@@ -4,7 +4,7 @@
 
 ## Deployment context
 
-This fork runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. All ROS 2 code executes inside a Docker container on the Jetson. Development is done remotely from a **MacBook via a Cursor remote-dev session** connected to the Jetson over the network. The `dev_env/` Docker setup is the primary way to build and run the stack in this configuration — see [`dev_env/README.md`](dev_env/README.md) for details.
+This fork runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. All ROS 2 code executes inside a dev container on the Jetson. Development is done remotely from a **MacBook via a Cursor remote-dev session** connected to the Jetson over the network. The **dev container** (see [`.devcontainer/`](.devcontainer/) and [`dev_env/README.md`](dev_env/README.md)) is the primary way to build and run the stack in this configuration.
 
 If you are an agent (claude/cursor) your terminal sessions are running on that jetson. There is no screen device. 
 

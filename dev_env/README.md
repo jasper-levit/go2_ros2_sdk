@@ -1,84 +1,66 @@
 # Unitree Go2 dev environment (ROS 2 Jazzy / Ubuntu 24.04)
 
-Docker setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The **repo is bind-mounted** into the container, so you can edit code and config on the host without rebuilding the image.
+**Dev container** setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The repo is bind-mounted at `/ros2_ws/src`, so you edit code and config on the host and see changes inside the container.
+
+- **Python**: [uv](https://docs.astral.sh/uv/) is installed in the image; the virtualenv at `/opt/venv` is created by `.devcontainer/install.sh` (run once via `postCreateCommand`). A **uv cache** volume is mounted to speed up installs.
+- **No Docker Compose**: use “Reopen in Container” (or `devcontainer build` / `devcontainer run`) instead.
 
 ## Prerequisites
 
-- Docker and the standalone **`docker-compose`** CLI (v2+, installed at `/usr/local/bin/docker-compose`)
+- Docker
+- VS Code or Cursor with the **Dev Containers** extension (e.g. “Dev Containers” by Microsoft)
 - Robot on the same network in Wi‑Fi mode; close the Unitree mobile app before connecting
-
-> [!NOTE]
-> On the Jetson backpack the Docker installation does **not** include the `compose` plugin, so
-> `docker compose` (space) will fail with *"docker: 'compose' is not a docker command"*.
-> Always use `docker-compose` (hyphen) for every command on this machine.
 
 ## Quick start
 
-1. Set the robot IP (from the app: Device → Data → STA Network: wlan0):
+1. Open the repo in VS Code/Cursor and run **“Dev Containers: Reopen in Container”** (or from CLI: `devcontainer up` from the repo root). The first time, the image will build, then `install.sh` creates the uv venv and `setup_workspace.sh` runs rosdep and colcon build.
+
+2. Set the robot IP (from the app: Device → Data → STA Network: wlan0):
 
    ```bash
    export ROBOT_IP=192.168.123.161
    ```
 
-2. Build the image once (from the **repo root** so the compose context is correct), then run:
+3. From the container terminal (e.g. at `/ros2_ws`):
 
    ```bash
-   cd dev_env
-   docker-compose build
-   ROBOT_IP=$ROBOT_IP CONN_TYPE=webrtc docker-compose run unitree_ros ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
+   source /ros2_ws/install/setup.bash
+   ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
    ```
 
-   Or use a `.env` file (copy from `.env.example` and set `ROBOT_IP`), then:
+   Or run the full stack (RViz, SLAM, Nav2, joystick):
 
    ```bash
-   docker-compose run unitree_ros ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
+   ros2 launch go2_robot_sdk robot.launch.py
    ```
 
-   The first run will install pip deps from the mounted repo, run `colcon build`, and start the launch. Later runs reuse the built workspace (install/build/log are in Docker volumes).
+4. In another terminal (inside or outside the container), list topics:
 
-3. If you see only "Container ... Created" and no launch output, run with **no TTY** so logs stream:
-   `docker-compose run --rm -T unitree_ros ros2 launch go2_robot_sdk robot.launch.py`
+   ```bash
+   ros2 topic list
+   ```
 
-   While the launch is running, in another terminal (from `dev_env`) list topics to confirm connection:
-   `docker-compose run --rm -T unitree_ros ros2 topic list`
-
-   You should see topics such as `/joint_states`, `/imu`, `/camera/image_raw`, `/odom`, `/scan`, etc. (Containers share `network_mode: host`, so they see the same ROS graph.)
+   You should see `/joint_states`, `/imu`, `/camera/image_raw`, `/odom`, `/scan`, etc.
 
 ## Foxglove
 
-**Foxglove Bridge** is installed and runs **in the background** when the container starts (port **8765**, bound to `0.0.0.0`). Connect from [Foxglove Studio](https://foxglove.dev/download) → Open Connection → Foxglove WebSocket → `ws://localhost:8765` (or `ws://<host-ip>:8765` from another machine).
-
-### Test Foxglove from the host (no container shell)
-
-To check that the bridge is listening **from your laptop or the host** (e.g. before opening Foxglove Studio):
+**Foxglove Bridge** is installed but not started automatically. To run it in the background:
 
 ```bash
-# From the machine running Docker (use localhost)
-python3 dev_env/scripts/test_foxglove_ws.py
-
-# From another machine (use the Docker host IP, e.g. 100.125.51.31)
-python3 dev_env/scripts/test_foxglove_ws.py 100.125.51.31
+ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765 address:=0.0.0.0 &
 ```
 
-You should see `TCP: OK` and, if `websocket-client` is installed (`pip install websocket-client`), `WebSocket: OK`. If you see `TCP: FAIL`, the container may have crashed (e.g. main launch failed); check `docker-compose logs`.
+Then connect from [Foxglove Studio](https://foxglove.dev/download) → Open Connection → Foxglove WebSocket → `ws://localhost:8765` (or `ws://<host-ip>:8765` from another machine).
 
-## Verify WEBRTC connection
+### Test Foxglove from the host
 
-- Default command runs `webrtc_web.launch.py` (driver + state publisher + camera). Foxglove Bridge is already running in the background.
-- To run the full stack (RViz, SLAM, Nav2, joystick), ensure `ROBOT_IP` is set (see Quick start step 1). From the **dev_env** directory run:
+```bash
+# From the machine running the dev container (use localhost)
+python3 dev_env/scripts/test_foxglove_ws.py
 
-  ```bash
-  docker-compose run unitree_ros ros2 launch go2_robot_sdk robot.launch.py
-  ```
-
-  (Compose passes `ROBOT_IP` from your environment or `.env` into the container.)
-
-- To list topics or run other one-off commands (new container, same image and volumes):
-
-  ```bash
-  docker-compose run --rm unitree_ros ros2 topic list
-  docker-compose run --rm unitree_ros ros2 topic echo /joint_states --once
-  ```
+# From another machine (use the dev container host IP)
+python3 dev_env/scripts/test_foxglove_ws.py <host_ip>
+```
 
 ## Options
 
@@ -88,19 +70,23 @@ You should see `TCP: OK` and, if `websocket-client` is installed (`pip install w
 | `CONN_TYPE`           | `webrtc`  | `webrtc` (Wi‑Fi) or `cyclonedds` (Ethernet) |
 | `WEBRTC_SERVER_PORT`  | `9991`    | WEBRTC server port             |
 
-## Bind mount and rebuild
+You can set `ROBOT_IP` (and optionally others) in `.env` or in the dev container’s `remoteEnv` in `.devcontainer/devcontainer.json`.
 
-- The repo root is bind-mounted at `/ros2_ws/src`. Edit launch files, config (e.g. `nav2_params.yaml`), or code on the host; changes are visible in the container immediately.
-- After changing Python or C++ code (or packages), rebuild the workspace inside the container so the new code is used:
-  ```bash
-  docker-compose run unitree_ros bash -c "cd /ros2_ws && colcon build && source install/setup.bash && ros2 launch go2_robot_sdk robot.launch.py"
-  ```
-- Purely editing YAML/launch and restarting the launch (no new packages) usually does not require `colcon build`; just start the launch again.
-- To force a clean build (e.g. after adding a package), remove the workspace volumes and run again: `docker-compose down -v` then run as in Quick start (the first run will do a full `colcon build` again).
+## Rebuild workspace
+
+After adding packages or changing Python/C++ code:
+
+```bash
+/setup_workspace.sh
+# or manually:
+cd /ros2_ws && colcon build && source install/setup.bash
+```
+
+For a clean build, remove `build` and `install` under `/ros2_ws` and run `setup_workspace.sh` again.
 
 ## Notes
 
-- `network_mode: host` is used so the container can discover the robot and ROS 2 nodes on the host.
-- Foxglove Bridge is started by the container entrypoint (`ros2 launch foxglove_bridge foxglove_bridge_launch.xml port:=8765`) before the main launch file.
-- For GUI (RViz), ensure `DISPLAY` is set and X11 forwarding is allowed (`xhost +local:docker` if needed).
-- **open3d** is not installed in this image (no wheel for arm64/Python 3.12). Lidar pointcloud and 3D map save in `lidar_processor` require open3d on the host or an amd64 image if you need that feature.
+- **uv cache**: The dev container mounts a Docker volume at `/root/.cache/uv` to persist uv’s cache and speed up `uv pip install` in `install.sh` and future runs.
+- **Network**: The container runs with `--network=host` so it can discover the robot and ROS 2 nodes on the host.
+- **GUI (RViz)**: Ensure `DISPLAY` is set and X11 is allowed (`xhost +local:docker` if needed). You may need to forward DISPLAY in `.devcontainer/devcontainer.json` or your environment.
+- **open3d**: Not installed in this image (no arm64/Python 3.12 wheel). Lidar pointcloud and 3D map save in `lidar_processor` require open3d on the host or an amd64 image if you need that feature.

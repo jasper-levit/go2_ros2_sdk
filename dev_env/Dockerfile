@@ -1,5 +1,5 @@
 # ROS 2 Jazzy on Ubuntu 24.04 (Noble) for Unitree Go2 WEBRTC
-# Workspace is bind-mounted at runtime (see docker-compose.yml); no COPY of repo.
+# Used by dev container; workspace is bind-mounted at runtime.
 FROM ros:jazzy-ros-base
 
 # Install basic requirements
@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
     lsb-release \
-    python3-pip \
     python3.12-venv \
     portaudio19-dev \
     mesa-utils \
@@ -23,11 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     git
 
-# Isolated venv: pip packages (aiortc, pydub, etc.) installed at runtime from mounted src/requirements.txt
-RUN python3 -m venv /opt/venv && . /opt/venv/bin/activate && \
-    pip install --upgrade pip 'numpy<2.0.0'
+# Install uv (venv is created in .devcontainer/install.sh)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
 
-# Workspace dir; src will be bind-mounted here by compose
+# Workspace dir; src is bind-mounted here by dev container
 WORKDIR /ros2_ws
 
 # Set environment variables for WEBRTC
@@ -38,22 +37,11 @@ ENV WEBRTC_SERVER_PORT="9991"
 
 RUN rm -rf /var/lib/apt/lists/*
 
-# Entrypoint and workspace setup (source, git, pip, colcon) live in scripts
-COPY dev_env/setup_workspace.sh /setup_workspace.sh
-COPY dev_env/entrypoint.sh /ros2_foxglove_entrypoint.sh
-RUN chmod +x /setup_workspace.sh /ros2_foxglove_entrypoint.sh
-
-# Also wire base ROS entrypoint for interactive shells
-RUN sed --in-place --expression \
-      '$i. /opt/venv/bin/activate' \
-      /ros_entrypoint.sh && \
-    sed --in-place --expression \
-      '$i[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash' \
-      /ros_entrypoint.sh
-
-RUN echo "source /opt/venv/bin/activate" >> /root/.bashrc && \
+# Wire bashrc for interactive shells (venv and ROS)
+RUN echo "[ -f /opt/venv/bin/activate ] && source /opt/venv/bin/activate" >> /root/.bashrc && \
     echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
     echo "[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash" >> /root/.bashrc
 
-ENTRYPOINT ["/ros2_foxglove_entrypoint.sh"]
-CMD ["ros2", "launch", "go2_robot_sdk", "webrtc_web.launch.py", "enable_foxglove_bridge:=false", "enable_tts:=false"]
+# setup_workspace.sh for colcon/rosdep (optional; can be run from postCreateCommand)
+COPY dev_env/setup_workspace.sh /setup_workspace.sh
+RUN chmod +x /setup_workspace.sh
