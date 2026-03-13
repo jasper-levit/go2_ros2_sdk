@@ -1,5 +1,6 @@
 # Unitree Go2 ROS 2 Jazzy (Ubuntu 24.04) - WEBRTC connection
-# Usage: ROBOT_IP=<robot_ip> docker compose up --build
+# Repo is bind-mounted; no image rebuild needed for code/config changes.
+# Usage: ROBOT_IP=<robot_ip> docker-compose run unitree_ros ros2 launch ...
 # Or: set ROBOT_IP and CONN_TYPE in .env
 
 services:
@@ -16,8 +17,19 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      # Bind-mount repo root as workspace src (run from dev_env, so .. is repo root)
+      - ..:/ros2_ws/src
+      # Persist colcon build/install across runs so we don't rebuild every time
+      - ws_install:/ros2_ws/install
+      - ws_build:/ros2_ws/build
+      - ws_log:/ros2_ws/log
     network_mode: "host"
     privileged: true
     devices:
       - /dev/input:/dev/input
     restart: unless-stopped
+
+volumes:
+  ws_install:
+  ws_build:
+  ws_log:

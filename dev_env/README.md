@@ -1,6 +1,6 @@
 # Unitree Go2 dev environment (ROS 2 Jazzy / Ubuntu 24.04)
 
-Docker setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04.
+Docker setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The **repo is bind-mounted** into the container, so you can edit code and config on the host without rebuilding the image.
 
 ## Prerequisites
 
@@ -20,26 +20,29 @@ Docker setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The c
    export ROBOT_IP=192.168.123.161
    ```
 
-2. Build and run:
+2. Build the image once (from the **repo root** so the compose context is correct), then run:
 
    ```bash
    cd dev_env
-   ROBOT_IP=$ROBOT_IP CONN_TYPE=webrtc docker-compose up --build
+   docker-compose build
+   ROBOT_IP=$ROBOT_IP CONN_TYPE=webrtc docker-compose run unitree_ros ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
    ```
 
    Or use a `.env` file (copy from `.env.example` and set `ROBOT_IP`), then:
 
    ```bash
-   docker-compose up --build
+   docker-compose run unitree_ros ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
    ```
 
-3. In another terminal, list topics to confirm connection to the dog:
+   The first run will install pip deps from the mounted repo, run `colcon build`, and start the launch. Later runs reuse the built workspace (install/build/log are in Docker volumes).
 
-   ```bash
-   docker-compose exec unitree_ros ros2 topic list
-   ```
+3. If you see only "Container ... Created" and no launch output, run with **no TTY** so logs stream:
+   `docker-compose run --rm -T unitree_ros ros2 launch go2_robot_sdk robot.launch.py`
 
-   You should see topics such as `/joint_states`, `/imu`, `/camera/image_raw`, `/odom`, `/scan`, etc.
+   While the launch is running, in another terminal (from `dev_env`) list topics to confirm connection:
+   `docker-compose run --rm -T unitree_ros ros2 topic list`
+
+   You should see topics such as `/joint_states`, `/imu`, `/camera/image_raw`, `/odom`, `/scan`, etc. (Containers share `network_mode: host`, so they see the same ROS graph.)
 
 ## Foxglove
 
@@ -70,11 +73,11 @@ You should see `TCP: OK` and, if `websocket-client` is installed (`pip install w
 
   (Compose passes `ROBOT_IP` from your environment or `.env` into the container.)
 
-- To only list topics (after the main container is running):
+- To list topics or run other one-off commands (new container, same image and volumes):
 
   ```bash
-  docker-compose exec unitree_ros ros2 topic list
-  docker-compose exec unitree_ros ros2 topic echo /joint_states --once
+  docker-compose run --rm unitree_ros ros2 topic list
+  docker-compose run --rm unitree_ros ros2 topic echo /joint_states --once
   ```
 
 ## Options
@@ -84,6 +87,16 @@ You should see `TCP: OK` and, if `websocket-client` is installed (`pip install w
 | `ROBOT_IP`            | (required)| Robot IP address               |
 | `CONN_TYPE`           | `webrtc`  | `webrtc` (Wi‑Fi) or `cyclonedds` (Ethernet) |
 | `WEBRTC_SERVER_PORT`  | `9991`    | WEBRTC server port             |
+
+## Bind mount and rebuild
+
+- The repo root is bind-mounted at `/ros2_ws/src`. Edit launch files, config (e.g. `nav2_params.yaml`), or code on the host; changes are visible in the container immediately.
+- After changing Python or C++ code (or packages), rebuild the workspace inside the container so the new code is used:
+  ```bash
+  docker-compose run unitree_ros bash -c "cd /ros2_ws && colcon build && source install/setup.bash && ros2 launch go2_robot_sdk robot.launch.py"
+  ```
+- Purely editing YAML/launch and restarting the launch (no new packages) usually does not require `colcon build`; just start the launch again.
+- To force a clean build (e.g. after adding a package), remove the workspace volumes and run again: `docker-compose down -v` then run as in Quick start (the first run will do a full `colcon build` again).
 
 ## Notes
 
