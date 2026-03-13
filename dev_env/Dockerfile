@@ -63,9 +63,9 @@ RUN echo "[ -f /opt/venv/bin/activate ] && source /opt/venv/bin/activate" >> /ro
     echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
     echo "[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash" >> /root/.bashrc
 
-# Python venv with repo deps (open3d excluded: no arm64/Python 3.12 wheel)
+# Python venv with repo deps
 COPY requirements.txt /tmp/requirements.txt
-RUN grep -v "^open3d" /tmp/requirements.txt > /tmp/requirements_uv.txt || true && \
-    uv venv /opt/venv --python python3 && \
-    uv pip install --python /opt/venv/bin/python -r /tmp/requirements_uv.txt && \
-    rm -f /tmp/requirements.txt /tmp/requirements_uv.txt
+RUN uv venv /opt/venv --python python3 && \
+    uv pip install --python /opt/venv/bin/python -r /tmp/requirements.txt && \
+    uv pip install --python /opt/venv/bin/python open3d-unofficial-arm && \
+    rm -f /tmp/requirements.txt

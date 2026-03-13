@@ -1,4 +1,3 @@
-![Ros2 SDK](https://github.com/abizovnuralem/go2_ros2_sdk/assets/33475993/49edebbe-11b6-49c6-b82d-bc46257674bd)
 
 # LEVIT FORK OF THE Unitree Go2 ROS2 SDK Project!
 
@@ -8,6 +7,26 @@ This fork runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. 
 
 If you are an agent (claude/cursor) your terminal sessions are running on that jetson. There is no screen device. 
 
+To start:
+Open the repo in cursor/vscode, then reopen inside container. This will trigger the devcontainer build
+Then manually run `src/build_workspace.sh` and you're ready to go. When iterating on one package you can then just run `colcon build`. 
+
+
+Running stuff:
+```
+src/build_workspace.sh
+export ROBOT_IP="192.168.123.161" 
+export CONN_TYPE="webrtc"
+export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}$PYTHONPATH
+ros2 launch go2_robot_sdk robot.launch.py rviz2:=false foxglove:=true
+
+
+```
+--- instructions go here ---
+
+
+
+# ORIGINAL README STARTS HERE:
 > [!IMPORTANT]  
 > I hadn’t updated this repository in a long time, and a lot of changes accumulated, making the project somewhat messy. I’ve finally found time to refactor everything using Clean Architecture principles. Previously, the LiDAR stream ran at around 2 Hz; it now updates at 7 Hz. However, joint states still arrive at 1 Hz, so you may notice some URDF update lag—that’s expected with the new firmware (v1.1.7). We’ll need to find a workaround for that.
 
@@ -301,60 +320,6 @@ ros2 topic pub /webrtc_req go2_interfaces/msg/WebRtcReq "{api_id: <API_ID>, para
 # Example: Send a handshake command
 ros2 topic pub /webrtc_req go2_interfaces/msg/WebRtcReq "{api_id: 1016, topic: 'rt/api/sport/request'}" --once
 ```
-
-## WSL 2
-
-If you are running ROS2 under WSL2 - you may need to configure Joystick\Gamepad to navigate the robot.
-
-1. Step 1 - share device with WSL2
-
-    Follow steps here https://learn.microsoft.com/en-us/windows/wsl/connect-usb to share your console device with WSL2
-
-2. Step 2 - Enable WSL2 joystick drivers
-
-    WSL2 does not come by default with the modules for joysticks. Build WSL2 Kernel with the joystick drivers. Follow the instructions here: https://github.com/dorssel/usbipd-win/wiki/WSL-support#building-your-own-wsl-2-kernel-with-additional-drivers  If you're comfortable with WSl2, skip the export steps and start at `Install prerequisites.`
-
-    Before buiding, edit `.config` file and update the CONFIG_ values listed in this GitHub issue: https://github.com/microsoft/WSL/issues/7747#issuecomment-1328217406
-
-2. Step 3 - Give permissions to /dev/input devices
-
-    Once you've finished the guides under Step 3 - you should be able to see your joystick device under /dev/input
-
-    ```bash
-    ls /dev/input
-    by-id  by-path  event0  js0
-    ```
-
-    By default /dev/input/event* will only have root permissions, so joy node won't have access to the joystick
-
-    Create a file `/etc/udev/rules.d/99-userdev-input.rules` with the following content:
-    `KERNEL=="event*", SUBSYSTEM=="input", RUN+="/usr/bin/setfacl -m u:YOURUSERNAME:rw $env{DEVNAME}"`
-
-    Run as root: `udevadm control --reload-rules && udevadm trigger`
-
-    https://askubuntu.com/a/609678
-
-3. Step 3 - verify that joy node is able to see the device properly. 
-
-    Run `ros2 run joy joy_enumerate_devices`
-
-    ```
-    ID : GUID                             : GamePad : Mapped : Joystick Device Name
-    -------------------------------------------------------------------------------
-    0 : 030000005e040000120b000007050000 :    true :  false : Xbox Series X Controller
-    ```
-
-## Thanks
-
-Special thanks to:
-1. @tfoldi (Tamas) for his idea and talent to create a webrtc connection method between python and unitree GO2;
-2. @budavariam for helping with lidar issues;
-3. @legion1581 for a new webrtc method, that is working with 1.1.1 firmware update;
-4. @alex.lin for his passion in ros1 ingration;
-5. @alansrobotlab for his passion in robotics and helping me to debug new webrtc method;
-6. @giangalv (Gianluca Galvagn) for helping me debug new issues with webrtc;
-7. Many many other open source contributors! and TheRoboVerse community!
-
 
 ## License
 
