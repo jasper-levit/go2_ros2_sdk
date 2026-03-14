@@ -1,15 +1,17 @@
 #!/bin/bash
-# Rosdep, colcon build for bind-mounted workspace (venv is created in image).
-# Expects /ros2_ws/src to be bind-mounted. Run from postCreateCommand or manually.
+# Rosdep, colcon build for workspace (venv is created in image).
+# Workspace root is /workspaces/levit_unitree. Run from postCreateCommand or manually.
 set -e
-echo "Building workspace"
+WS=/workspaces/levit_unitree
+SRC=$WS/src
 
-SRC=/ros2_ws/src
-
-if [ ! -d "$SRC" ] || [ ! -f "$SRC/requirements.txt" ]; then
-  echo "ERROR: Bind-mount repo root at /ros2_ws/src (see dev_env/README.md)"
+if [ ! -d "$SRC" ] || [ ! -f "$WS/requirements.txt" ]; then
+  echo "ERROR: Workspace must have src/ and requirements.txt under $WS (see dev_env/README.md)"
   exit 1
 fi
+
+cd "$WS"
+echo "Building workspace"
 
 echo "Checking venv"
 [ -f /opt/venv/bin/activate ] && . /opt/venv/bin/activate
@@ -19,7 +21,7 @@ echo "Setting PYTHONPATH"
 export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}${PYTHONPATH}
 
 echo "Updating submodules"
-(cd "$SRC" && git submodule update --init --recursive)
+git submodule update --init --recursive
 
 echo "Installing dependencies"
 rosdep install --from-paths src --ignore-src -r -y
@@ -27,4 +29,4 @@ rosdep install --from-paths src --ignore-src -r -y
 echo "Building workspace"
 colcon build
 
-source /ros2_ws/install/setup.bash
+source "$WS/install/setup.bash"

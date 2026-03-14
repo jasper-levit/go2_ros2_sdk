@@ -11,3 +11,7 @@ opencv-python
 pydub
 numpy==1.26.4
 wheel
+pyyaml
+empy
+catkin_pkg
+lark

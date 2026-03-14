@@ -43,8 +43,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
-# Workspace dir; src is bind-mounted here by dev container
-WORKDIR /ros2_ws
+# Workspace dir; dev container bind-mounts repo at /workspaces/levit_unitree.
+RUN mkdir -p /workspaces/levit_unitree
+WORKDIR /workspaces/levit_unitree
 
 # Set environment variables for WEBRTC
 ENV ROBOT_IP=""
@@ -55,13 +56,13 @@ ENV WEBRTC_SERVER_PORT="9991"
 # Pre-warm rosdep cache so postCreateCommand rosdep install is faster (use bash for setup.bash)
 RUN bash -c '. /opt/ros/${ROS_DISTRO}/setup.bash && rosdep update'
 
-# Trust any bind-mounted repo (dev container mounts at /workspaces/...; /ros2_ws/src is a symlink)
+# Trust any bind-mounted repo
 RUN git config --global --add safe.directory '*'
 
 # Wire bashrc for interactive shells (venv and ROS)
 RUN echo "[ -f /opt/venv/bin/activate ] && source /opt/venv/bin/activate" >> /root/.bashrc && \
     echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /root/.bashrc && \
-    echo "[ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash" >> /root/.bashrc
+    echo "[ -f /workspaces/levit_unitree/install/setup.bash ] && source /workspaces/levit_unitree/install/setup.bash" >> /root/.bashrc
 
 # Python venv with repo deps
 COPY requirements.txt /tmp/requirements.txt

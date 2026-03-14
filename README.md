@@ -3,19 +3,19 @@
 
 ## Deployment context
 
-This fork runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. All ROS 2 code executes inside a dev container on the Jetson. Development is done remotely from a **MacBook via a Cursor remote-dev session** connected to the Jetson over the network. The **dev container** (see [`.devcontainer/`](.devcontainer/) and [`dev_env/README.md`](dev_env/README.md)) is the primary way to build and run the stack in this configuration.
+This fork (**levit_unitree**) runs on a **Jetson backpack** mounted on a **Unitree Go2 EDU** robot. The repo and the folder it is cloned into are named `levit_unitree`. All ROS 2 code executes inside a dev container on the Jetson. Development is done remotely from a **MacBook via a Cursor remote-dev session** connected to the Jetson over the network. The **dev container** (see [`.devcontainer/`](.devcontainer/) and [`dev_env/README.md`](dev_env/README.md)) is the primary way to build and run the stack in this configuration.
 
 If you are an agent (claude/cursor) your terminal sessions are running on that jetson. There is no screen device. 
 
 To start:
-Open the repo in cursor/vscode, then reopen inside container. This will trigger the devcontainer build
-Then manually run `src/build_workspace.sh` and you're ready to go. When iterating on one package you can then just run `colcon build`. 
+Open the `levit_unitree` folder (the repo root) in Cursor/VS Code, then reopen inside container. This will trigger the devcontainer build
+Then manually run `./build_workspace.sh` from the workspace root and you're ready to go. When iterating on one package you can then just run `colcon build`. 
 
 
 Running stuff:
 ```
 export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}$PYTHONPATH
-src/build_workspace.sh
+./build_workspace.sh
 export ROBOT_IP="192.168.123.161" 
 export CONN_TYPE="webrtc"
 ros2 launch go2_robot_sdk robot.launch.py rviz2:=false foxglove:=true

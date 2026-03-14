@@ -1,6 +1,6 @@
 # Unitree Go2 dev environment (ROS 2 Jazzy / Ubuntu 24.04)
 
-**Dev container** setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The repo is bind-mounted at `/ros2_ws/src`, so you edit code and config on the host and see changes inside the container.
+**Dev container** setup to connect to the Unitree Go2 robot via **WEBRTC** (Wi‑Fi). The container uses ROS 2 Jazzy on Ubuntu 24.04. The repo is the workspace root, bind-mounted at `/workspaces/levit_unitree`, so you edit code and config on the host and see changes inside the container.
 
 - **Python**: [uv](https://docs.astral.sh/uv/) is installed in the image; the virtualenv at `/opt/venv` is created by `build_workspace.sh` (run via `postCreateCommand` or manually). A **uv cache** volume is mounted to speed up installs.
 - **No Docker Compose**: use “Reopen in Container” (or `devcontainer build` / `devcontainer run`) instead.
@@ -21,10 +21,10 @@
    export ROBOT_IP=192.168.123.161
    ```
 
-3. From the container terminal (e.g. at `/ros2_ws`):
+3. From the container terminal (at `/workspaces/levit_unitree`):
 
    ```bash
-   source /ros2_ws/install/setup.bash
+   source /workspaces/levit_unitree/install/setup.bash
    ros2 launch go2_robot_sdk webrtc_web.launch.py enable_foxglove_bridge:=false enable_tts:=false
    ```
 
@@ -77,15 +77,16 @@ You can set `ROBOT_IP` (and optionally others) in `.env` or in the dev container
 After adding packages or changing Python/C++ code:
 
 ```bash
-/build_workspace.sh
+./build_workspace.sh
 # or manually:
-cd /ros2_ws && colcon build && source install/setup.bash
+cd /workspaces/levit_unitree && colcon build && source install/setup.bash
 ```
 
-For a clean build, remove `build` and `install` under `/ros2_ws` and run `build_workspace.sh` again.
+For a clean build, remove `build` and `install` under `/workspaces/levit_unitree` and run `build_workspace.sh` again.
 
 ## Notes
 
+- **Submodules**: The workspace uses submodules (`src/go2_robot_sdk/external_lib/aioice`, `src/tf_tree_terminal`). `build_workspace.sh` runs `git submodule update --init --recursive`. If `src/tf_tree_terminal` is missing and not in the repo yet, run once: `git submodule add https://github.com/Tanneguydv/tf_tree_terminal.git src/tf_tree_terminal`.
 - **uv cache**: The dev container mounts a Docker volume at `/root/.cache/uv` to persist uv’s cache and speed up `uv pip install` in `install.sh` and future runs.
 - **Network**: The container runs with `--network=host` so it can discover the robot and ROS 2 nodes on the host.
 - **GUI (RViz)**: Ensure `DISPLAY` is set and X11 is allowed (`xhost +local:docker` if needed). You may need to forward DISPLAY in `.devcontainer/devcontainer.json` or your environment.

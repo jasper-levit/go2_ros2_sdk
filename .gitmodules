@@ -1,4 +1,8 @@
 [submodule "go2_robot_sdk/external_lib/aioice"]
-	path = go2_robot_sdk/external_lib/aioice
+	path = src/go2_robot_sdk/external_lib/aioice
 	url = https://github.com/legion1581/aioice.git
 	branch = go2
+
+[submodule "src/tf_tree_terminal"]
+	path = src/tf_tree_terminal
+	url = https://github.com/Tanneguydv/tf_tree_terminal.git
