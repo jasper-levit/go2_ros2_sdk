@@ -186,6 +186,7 @@ class Go2NodeFactory:
                 executable='go2_driver_node',
                 name='go2_driver_node',
                 output='screen',
+                additional_env={'AV_LOG_LEVEL': '-8'},  # Suppress FFmpeg/h264 decoder stderr
                 parameters=[{
                     'robot_ip': self.config.robot_ip,
                     'token': self.config.robot_token,

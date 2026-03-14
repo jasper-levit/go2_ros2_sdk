@@ -14,10 +14,10 @@ Then manually run `src/build_workspace.sh` and you're ready to go. When iteratin
 
 Running stuff:
 ```
+export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}$PYTHONPATH
 src/build_workspace.sh
 export ROBOT_IP="192.168.123.161" 
 export CONN_TYPE="webrtc"
-export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}$PYTHONPATH
 ros2 launch go2_robot_sdk robot.launch.py rviz2:=false foxglove:=true
 
 

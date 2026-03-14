@@ -2,9 +2,20 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import asyncio
+import contextlib
 import logging
 import os
+import sys
 from typing import Dict, Any
+
+# Suppress FFmpeg/libav swscaler and decoder stderr (aiortc uses av for video)
+try:
+    import av.logging as av_logging
+    av_logging.set_level(av_logging.PANIC)
+    if hasattr(av_logging, 'set_libav_level'):
+        av_logging.set_libav_level(av_logging.PANIC)
+except Exception:
+    pass
 
 from aiortc import MediaStreamTrack
 from cv_bridge import CvBridge
@@ -283,6 +294,19 @@ class Go2DriverNode(Node):
         """Callback for receiving data from robot"""
         self.robot_data_service.process_webrtc_message(msg, robot_id)
 
+    @contextlib.contextmanager
+    def _quiet_video_decode(self):
+        """Redirect stderr to /dev/null during video decode (FFmpeg swscaler writes to fd 2)."""
+        stderr_fd = sys.stderr.fileno()
+        save_fd = os.dup(stderr_fd)
+        try:
+            with open(os.devnull, 'w') as devnull:
+                os.dup2(devnull.fileno(), stderr_fd)
+            yield
+        finally:
+            os.dup2(save_fd, stderr_fd)
+            os.close(save_fd)
+
     async def _on_video_frame(self, track: MediaStreamTrack, robot_id: str) -> None:
         """Callback for processing video frames"""
         logger.info(f"Video frame received for robot {robot_id}")
@@ -290,7 +314,8 @@ class Go2DriverNode(Node):
         while True:
             try:
                 frame = await track.recv()
-                img = frame.to_ndarray(format="bgr24")
+                with self._quiet_video_decode():
+                    img = frame.to_ndarray(format="bgr24")
 
                 # Create camera data
                 camera_data = CameraData(
