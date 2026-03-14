@@ -37,7 +37,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     git \
     python3-pytest \
-    python3-requests
+    python3-requests \
+    tmux \
+    nmon 
 
 # Install uv (venv created in final step below)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \

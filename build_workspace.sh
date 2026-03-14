@@ -1,6 +1,8 @@
 #!/bin/bash
 # Rosdep, colcon build for workspace (venv is created in image).
 # Workspace root is /workspaces/levit_unitree. Run from postCreateCommand or manually.
+# To keep PYTHONPATH and workspace in your shell for later commands (e.g. ros2 launch),
+# run:  source ./build_workspace.sh   (not  ./build_workspace.sh)
 set -e
 WS=/workspaces/levit_unitree
 SRC=$WS/src

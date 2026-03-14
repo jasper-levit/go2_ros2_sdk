@@ -9,19 +9,18 @@ If you are an agent (claude/cursor) your terminal sessions are running on that j
 
 To start:
 Open the `levit_unitree` folder (the repo root) in Cursor/VS Code, then reopen inside container. This will trigger the devcontainer build
-Then manually run `./build_workspace.sh` from the workspace root and you're ready to go. When iterating on one package you can then just run `colcon build`. 
+Then manually run `source ./build_workspace.sh` from the workspace root (so the env stays in your shell) and you're ready to go. When iterating on one package you can then just run `colcon build`. 
 
 
 Running stuff:
 ```
-export PYTHONPATH=/opt/venv/lib/python3.12/site-packages${PYTHONPATH:+:}$PYTHONPATH
-./build_workspace.sh
+source ./build_workspace.sh
 export ROBOT_IP="192.168.123.161" 
 export CONN_TYPE="webrtc"
 ros2 launch go2_robot_sdk robot.launch.py rviz2:=false foxglove:=true
-
-
 ```
+Use `source ./build_workspace.sh` (not `./build_workspace.sh`) so PYTHONPATH and the workspace (`install/setup.bash`) stay in your shell; then the Foxglove bridge gets the custom message definitions. and you won't see "missing definitions" in Foxglove Studio.
+
 --- instructions go here ---
 
 
